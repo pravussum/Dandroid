@@ -1,13 +1,17 @@
 package net.mortalsilence.droidfoss.comm;
 
+import static net.mortalsilence.droidfoss.comm.Commands.BOOST;
+import static net.mortalsilence.droidfoss.comm.Commands.EXTRACT_FAN_SPEED;
 import static net.mortalsilence.droidfoss.comm.Commands.MODE;
 import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_1_READ;
 import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_1_WRITE;
 import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_4_READ;
+import static net.mortalsilence.droidfoss.comm.Commands.SUPPLY_FAN_SPEED;
 import static net.mortalsilence.droidfoss.comm.Commands.UNIT_NAME;
 import static net.mortalsilence.droidfoss.comm.Commands.UNIT_SERIAL;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
 import java.time.ZoneId;
@@ -110,9 +114,29 @@ public class DanfossAirUnit {
         setStringTypeRegister(mode, MODE);
     }
 
+    public boolean getBoost() throws IOException {
+        return getBoolean(REGISTER_1_READ, BOOST);
+    }
+
+    public void setBoost(Boolean boost) throws IOException {
+        setOnOffTypeRegister(boost, BOOST);
+    }
+
     private void setStringTypeRegister(Mode mode, byte[] register) throws IOException {
         byte value = (byte) (Mode.valueOf(mode.name()).ordinal());
         set(REGISTER_1_WRITE, register, value);
+    }
+
+    private void setOnOffTypeRegister(Boolean cmd, byte[] register) throws IOException {
+        set(REGISTER_1_WRITE, register, cmd ? (byte) 1 : (byte) 0);
+    }
+
+    public short getSupplyFanSpeed() throws IOException {
+        return getWord(REGISTER_4_READ, SUPPLY_FAN_SPEED);
+    }
+
+    public short getExtractFanSpeed() throws IOException {
+        return getWord(REGISTER_4_READ, EXTRACT_FAN_SPEED);
     }
 
 /*
@@ -124,14 +148,6 @@ public class DanfossAirUnit {
         return new PercentType(BigDecimal.valueOf(value * 10));
     }
 
-    public QuantityType<Frequency> getSupplyFanSpeed() throws IOException {
-        return new QuantityType<>(BigDecimal.valueOf(getWord(REGISTER_4_READ, SUPPLY_FAN_SPEED)), Units.RPM);
-    }
-
-    public QuantityType<Frequency> getExtractFanSpeed() throws IOException {
-        return new QuantityType<>(BigDecimal.valueOf(getWord(REGISTER_4_READ, EXTRACT_FAN_SPEED)), Units.RPM);
-    }
-
     public PercentType getSupplyFanStep() throws IOException {
         return new PercentType(BigDecimal.valueOf(getByte(REGISTER_4_READ, SUPPLY_FAN_STEP)));
     }
@@ -140,9 +156,6 @@ public class DanfossAirUnit {
         return new PercentType(BigDecimal.valueOf(getByte(REGISTER_4_READ, EXTRACT_FAN_STEP)));
     }
 
-    public OnOffType getBoost() throws IOException {
-        return OnOffType.from(getBoolean(REGISTER_1_READ, BOOST));
-    }
 
     public OnOffType getNightCooling() throws IOException {
         return OnOffType.from(getBoolean(REGISTER_1_READ, NIGHT_COOLING));
@@ -228,17 +241,6 @@ public class DanfossAirUnit {
             set(REGISTER_1_WRITE, register, value);
         }
         return new PercentType(BigDecimal.valueOf(getByte(REGISTER_1_READ, register) * 10));
-    }
-
-    private OnOffType setOnOffTypeRegister(Command cmd, byte[] register) throws IOException {
-        if (cmd instanceof OnOffType) {
-            set(REGISTER_1_WRITE, register, OnOffType.ON.equals(cmd) ? (byte) 1 : (byte) 0);
-        }
-        return OnOffType.from(getBoolean(REGISTER_1_READ, register));
-    }
-
-    public OnOffType setBoost(Command cmd) throws IOException {
-        return setOnOffTypeRegister(cmd, BOOST);
     }
 
     public OnOffType setNightCooling(Command cmd) throws IOException {
