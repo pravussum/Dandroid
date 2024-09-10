@@ -92,30 +92,15 @@ class MainActivity : ComponentActivity() {
                 }
                 ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
                     setter = { mainViewModel.setMode(it) })
-                SwitchRow("Boost", getter = { mainState.boost }, setter = {mainViewModel.setBoost(it)})
+                SwitchRow(
+                    "Boost",
+                    getter = { mainState.boost },
+                    setter = { mainViewModel.setBoost(it) })
 
-                Row(
-                    modifier = Modifier.padding(bottom = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Manual Fan Step: ",
-                        modifier = Modifier.padding(end = 16.dp),
-                        fontSize = TextUnit(6f, Em)
-                    )
-                    var sliderValueRaw by remember(mainState.manualFanStep) {
-                        mutableFloatStateOf(
-                            mainState.manualFanStep?.toFloat() ?: 0f
-                        )
-                    }
-                    Slider(
-                        value = sliderValueRaw,
-                        valueRange = 0f..100f,
-                        steps = 10,
-                        onValueChange = { sliderValueRaw = it },
-                        onValueChangeFinished = { mainViewModel.setManualFanStep(sliderValueRaw.toInt()) }
-                    )
-                }
+                SliderRow(
+                    "Manual Fan Step",
+                    { mainState.manualFanStep },
+                    { mainViewModel.setManualFanStep(it) })
 
             }
         }
@@ -125,6 +110,36 @@ class MainActivity : ComponentActivity() {
                 snackbarHostState.showSnackbar(message)
                 mainViewModel.markMessageShown()
             }
+        }
+    }
+
+    @Composable
+    private fun SliderRow(
+        title: String,
+        getter: () -> Int?,
+        setter: (Int) -> Unit
+    ) {
+        Row(
+            modifier = Modifier.padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "$title: ",
+                modifier = Modifier.padding(end = 16.dp),
+                fontSize = TextUnit(6f, Em)
+            )
+            var sliderValueRaw by remember(getter) {
+                mutableFloatStateOf(
+                    getter.invoke()?.toFloat() ?: 0f
+                )
+            }
+            Slider(
+                value = sliderValueRaw,
+                valueRange = 0f..100f,
+                steps = 10,
+                onValueChange = { sliderValueRaw = it },
+                onValueChangeFinished = { setter.invoke(sliderValueRaw.toInt()) }
+            )
         }
     }
 
@@ -191,18 +206,18 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.padding(end = 16.dp),
                 fontSize = TextUnit(6f, Em)
             )
-            var stateRaw by remember (getter) {
+            var stateRaw by remember(getter) {
                 mutableStateOf(toggleableState(getter))
             }
             TriStateCheckbox(
-                state = stateRaw ,
+                state = stateRaw,
                 onClick = {
-                    stateRaw = when(stateRaw) {
+                    stateRaw = when (stateRaw) {
                         Indeterminate -> On
                         On -> Off
                         Off -> On
                     }
-                    if(stateRaw != Indeterminate) setter.invoke(stateRaw == On)
+                    if (stateRaw != Indeterminate) setter.invoke(stateRaw == On)
                 }
             )
         }
