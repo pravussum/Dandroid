@@ -2,6 +2,7 @@ package net.mortalsilence.droidfoss.comm;
 
 import static net.mortalsilence.droidfoss.comm.Commands.BOOST;
 import static net.mortalsilence.droidfoss.comm.Commands.EXTRACT_FAN_SPEED;
+import static net.mortalsilence.droidfoss.comm.Commands.MANUAL_FAN_SPEED_STEP;
 import static net.mortalsilence.droidfoss.comm.Commands.MODE;
 import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_1_READ;
 import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_1_WRITE;
@@ -11,7 +12,6 @@ import static net.mortalsilence.droidfoss.comm.Commands.UNIT_NAME;
 import static net.mortalsilence.droidfoss.comm.Commands.UNIT_SERIAL;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
 import java.time.ZoneId;
@@ -139,14 +139,24 @@ public class DanfossAirUnit {
         return getWord(REGISTER_4_READ, EXTRACT_FAN_SPEED);
     }
 
-/*
-    public PercentType getManualFanStep() throws IOException, UnexpectedResponseValueException {
+    public int getManualFanStep() throws IOException, UnexpectedResponseValueException {
         byte value = getByte(REGISTER_1_READ, MANUAL_FAN_SPEED_STEP);
         if (value < 0 || value > 10) {
             throw new UnexpectedResponseValueException(String.format("Invalid fan step: %d", value));
         }
-        return new PercentType(BigDecimal.valueOf(value * 10));
+        return value * 10;
     }
+
+    public void setManualFanStep(int step) throws IOException {
+        setPercentTypeRegister(step, MANUAL_FAN_SPEED_STEP);
+    }
+
+    private void setPercentTypeRegister(int step, byte[] register) throws IOException {
+        byte value = (byte) ((step + 5) / 10);
+        set(REGISTER_1_WRITE, register, value);
+    }
+
+/*
 
     public PercentType getSupplyFanStep() throws IOException {
         return new PercentType(BigDecimal.valueOf(getByte(REGISTER_4_READ, SUPPLY_FAN_STEP)));
@@ -223,24 +233,12 @@ public class DanfossAirUnit {
         return new DateTimeType(timestamp);
     }
 
-    public PercentType setManualFanStep(Command cmd) throws IOException {
-        return setPercentTypeRegister(cmd, MANUAL_FAN_SPEED_STEP);
-    }
-
     private DecimalType setNumberTypeRegister(Command cmd, byte[] register) throws IOException {
         if (cmd instanceof DecimalType decimalCommand) {
             byte value = (byte) decimalCommand.intValue();
             set(REGISTER_1_WRITE, register, value);
         }
         return new DecimalType(BigDecimal.valueOf(getByte(REGISTER_1_READ, register)));
-    }
-
-    private PercentType setPercentTypeRegister(Command cmd, byte[] register) throws IOException {
-        if (cmd instanceof PercentType percentCommand) {
-            byte value = (byte) ((percentCommand.intValue() + 5) / 10);
-            set(REGISTER_1_WRITE, register, value);
-        }
-        return new PercentType(BigDecimal.valueOf(getByte(REGISTER_1_READ, register) * 10));
     }
 
     public OnOffType setNightCooling(Command cmd) throws IOException {

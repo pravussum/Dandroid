@@ -29,7 +29,7 @@ class DanfossAirUnitCommunicationController(private val inetAddr: InetAddress) :
             return
         }
         val localSocket = Socket()
-        Log.d(TAG, "Connecting socket...")
+        Log.d(TAG, "Connecting socket using inetAddr $inetAddr and port $port")
         localSocket.connect(InetSocketAddress(inetAddr, port), 5000)
         Log.d(TAG, "... connected.")
         localSocket.soTimeout = SOCKET_TIMEOUT_MILLISECONDS

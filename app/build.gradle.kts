@@ -18,6 +18,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        buildConfigField (type = "String", name = "AIR_UNIT_IP", value = "\"\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -27,6 +32,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        create("local") {
+            buildConfigField (type = "String", name = "AIR_UNIT_IP", value = "\"192.168.0.7\"")
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = true
         }
     }
     compileOptions {
