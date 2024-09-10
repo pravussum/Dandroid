@@ -7,6 +7,7 @@ public class Commands {
     public static final byte[] EMPTY = {};
     public static final byte[] GET_HISTORY = { 0x00, 0x30 };
     public static final byte[] REGISTER_0_READ = { 0x00, 0x04 };
+    public static final byte[] REGISTER_0_WRITE = { 0x00, 0x06 };
     public static final byte[] REGISTER_1_READ = { 0x01, 0x04 };
     public static final byte[] REGISTER_1_WRITE = { 0x01, 0x06 };
     public static final byte[] REGISTER_2_READ = { 0x02, 0x04 };

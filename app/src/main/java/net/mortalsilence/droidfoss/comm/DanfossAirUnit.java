@@ -1,15 +1,33 @@
 package net.mortalsilence.droidfoss.comm;
 
+import static net.mortalsilence.droidfoss.comm.Commands.BATTERY_LIFE;
 import static net.mortalsilence.droidfoss.comm.Commands.BOOST;
+import static net.mortalsilence.droidfoss.comm.Commands.BYPASS;
+import static net.mortalsilence.droidfoss.comm.Commands.CURRENT_TIME;
+import static net.mortalsilence.droidfoss.comm.Commands.EXHAUST_TEMPERATURE;
 import static net.mortalsilence.droidfoss.comm.Commands.EXTRACT_FAN_SPEED;
+import static net.mortalsilence.droidfoss.comm.Commands.EXTRACT_FAN_STEP;
+import static net.mortalsilence.droidfoss.comm.Commands.EXTRACT_TEMPERATURE;
+import static net.mortalsilence.droidfoss.comm.Commands.FILTER_LIFE;
+import static net.mortalsilence.droidfoss.comm.Commands.FILTER_PERIOD;
+import static net.mortalsilence.droidfoss.comm.Commands.HUMIDITY;
 import static net.mortalsilence.droidfoss.comm.Commands.MANUAL_FAN_SPEED_STEP;
 import static net.mortalsilence.droidfoss.comm.Commands.MODE;
+import static net.mortalsilence.droidfoss.comm.Commands.NIGHT_COOLING;
+import static net.mortalsilence.droidfoss.comm.Commands.OUTDOOR_TEMPERATURE;
+import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_0_READ;
 import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_1_READ;
 import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_1_WRITE;
 import static net.mortalsilence.droidfoss.comm.Commands.REGISTER_4_READ;
+import static net.mortalsilence.droidfoss.comm.Commands.ROOM_TEMPERATURE;
+import static net.mortalsilence.droidfoss.comm.Commands.ROOM_TEMPERATURE_CALCULATED;
 import static net.mortalsilence.droidfoss.comm.Commands.SUPPLY_FAN_SPEED;
+import static net.mortalsilence.droidfoss.comm.Commands.SUPPLY_FAN_STEP;
+import static net.mortalsilence.droidfoss.comm.Commands.SUPPLY_TEMPERATURE;
 import static net.mortalsilence.droidfoss.comm.Commands.UNIT_NAME;
 import static net.mortalsilence.droidfoss.comm.Commands.UNIT_SERIAL;
+
+import android.util.Log;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +36,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 public class DanfossAirUnit {
+
+    public static final String TAG = "DanfossAirUnit";
 
     private final CommunicationController communicationController;
 
@@ -54,12 +74,13 @@ public class DanfossAirUnit {
         return (short) ((result[0] << 8) + (result[1] & 0xff));
     }
 
-    private float getTemperature(byte[] operation, byte[] register)
-            throws IOException, UnexpectedResponseValueException {
+    private Float getTemperature(byte[] operation, byte[] register)
+            throws IOException {
         short shortTemp = getShort(operation, register);
         float temp = ((float) shortTemp) / 100;
         if (temp <= -274 || temp > 100) {
-            throw new UnexpectedResponseValueException(String.format("Invalid temperature: %s", temp));
+            Log.i(TAG, "Retrieved invalid temperature value from AirUnit: " + temp);
+            return null;
         }
         return temp;
     }
@@ -86,11 +107,11 @@ public class DanfossAirUnit {
         }
     }
 
-    private static int asUnsignedByte(byte b) {
+    private int asUnsignedByte(byte b) {
         return b & 0xFF;
     }
 
-    private static float asPercentByte(byte b) {
+    private float asPercentByte(byte b) {
         float f = asUnsignedByte(b);
         return f * 100 / 255;
     }
@@ -108,8 +129,8 @@ public class DanfossAirUnit {
     }
 
     public void setMode(Mode mode) throws IOException {
-        if(mode == Mode.UNKNOWN){
-            throw new IllegalArgumentException("Setting to mode unknown is not supported");
+        if(mode == Mode.NA){
+            throw new IllegalArgumentException("Setting to mode n/a is not supported");
         }
         setStringTypeRegister(mode, MODE);
     }
@@ -127,7 +148,7 @@ public class DanfossAirUnit {
         set(REGISTER_1_WRITE, register, value);
     }
 
-    private void setOnOffTypeRegister(Boolean cmd, byte[] register) throws IOException {
+    private void setOnOffTypeRegister(boolean cmd, byte[] register) throws IOException {
         set(REGISTER_1_WRITE, register, cmd ? (byte) 1 : (byte) 0);
     }
 
@@ -141,6 +162,10 @@ public class DanfossAirUnit {
 
     public int getManualFanStep() throws IOException, UnexpectedResponseValueException {
         byte value = getByte(REGISTER_1_READ, MANUAL_FAN_SPEED_STEP);
+        return percentFromTenStepValue(value);
+    }
+
+    private int percentFromTenStepValue(byte value) throws UnexpectedResponseValueException {
         if (value < 0 || value > 10) {
             throw new UnexpectedResponseValueException(String.format("Invalid fan step: %d", value));
         }
@@ -156,97 +181,75 @@ public class DanfossAirUnit {
         set(REGISTER_1_WRITE, register, value);
     }
 
-/*
-
-    public PercentType getSupplyFanStep() throws IOException {
-        return new PercentType(BigDecimal.valueOf(getByte(REGISTER_4_READ, SUPPLY_FAN_STEP)));
+    public Float getFilterLife() throws IOException {
+        return asPercentByte(getByte(REGISTER_1_READ, FILTER_LIFE));
     }
 
-    public PercentType getExtractFanStep() throws IOException {
-        return new PercentType(BigDecimal.valueOf(getByte(REGISTER_4_READ, EXTRACT_FAN_STEP)));
+    public Byte getFilterPeriod() throws IOException {
+        return getByte(REGISTER_0_READ, FILTER_PERIOD);
     }
 
-
-    public OnOffType getNightCooling() throws IOException {
-        return OnOffType.from(getBoolean(REGISTER_1_READ, NIGHT_COOLING));
+    private void setNumberTypeRegister(byte value, byte[] register) throws IOException {
+        set(REGISTER_1_WRITE, register, value);
     }
 
-    public OnOffType getBypass() throws IOException {
-        return OnOffType.from(getBoolean(REGISTER_1_READ, BYPASS));
+    public byte getSupplyFanStep() throws IOException, UnexpectedResponseValueException {
+        return getByte(REGISTER_4_READ, SUPPLY_FAN_STEP);
     }
 
-    public QuantityType<Dimensionless> getHumidity() throws IOException {
-        BigDecimal value = BigDecimal.valueOf(asPercentByte(getByte(REGISTER_1_READ, HUMIDITY)));
-        return new QuantityType<>(value.setScale(1, RoundingMode.HALF_UP), Units.PERCENT);
+    public byte getExtractFanStep() throws IOException, UnexpectedResponseValueException {
+        return getByte(REGISTER_4_READ, EXTRACT_FAN_STEP);
     }
 
-    public QuantityType<Temperature> getRoomTemperature() throws IOException, UnexpectedResponseValueException {
-        return getTemperatureAsDecimalType(REGISTER_1_READ, ROOM_TEMPERATURE);
+    public boolean getNightCooling() throws IOException {
+        return getBoolean(REGISTER_1_READ, NIGHT_COOLING);
     }
 
-    public QuantityType<Temperature> getRoomTemperatureCalculated()
-            throws IOException, UnexpectedResponseValueException {
-        return getTemperatureAsDecimalType(REGISTER_0_READ, ROOM_TEMPERATURE_CALCULATED);
+    public boolean getBypass() throws IOException {
+        return getBoolean(REGISTER_1_READ, BYPASS);
     }
 
-    public QuantityType<Temperature> getOutdoorTemperature() throws IOException, UnexpectedResponseValueException {
-        return getTemperatureAsDecimalType(REGISTER_1_READ, OUTDOOR_TEMPERATURE);
+    public float getHumidity() throws IOException {
+        return asPercentByte(getByte(REGISTER_1_READ, HUMIDITY));
     }
 
-    public QuantityType<Temperature> getSupplyTemperature() throws IOException, UnexpectedResponseValueException {
-        return getTemperatureAsDecimalType(REGISTER_4_READ, SUPPLY_TEMPERATURE);
+    public Float getRoomTemperature() throws IOException {
+        return getTemperature(REGISTER_1_READ, ROOM_TEMPERATURE);
     }
 
-    public QuantityType<Temperature> getExtractTemperature() throws IOException, UnexpectedResponseValueException {
-        return getTemperatureAsDecimalType(REGISTER_4_READ, EXTRACT_TEMPERATURE);
+    public Float getRoomTemperatureCalculated() throws IOException {
+        return getTemperature(REGISTER_0_READ, ROOM_TEMPERATURE_CALCULATED);
     }
 
-    public QuantityType<Temperature> getExhaustTemperature() throws IOException, UnexpectedResponseValueException {
-        return getTemperatureAsDecimalType(REGISTER_4_READ, EXHAUST_TEMPERATURE);
+    public Float getOutdoorTemperature() throws IOException {
+        return getTemperature(REGISTER_1_READ, OUTDOOR_TEMPERATURE);
     }
 
-    private QuantityType<Temperature> getTemperatureAsDecimalType(byte[] operation, byte[] register)
-            throws IOException, UnexpectedResponseValueException {
-        BigDecimal value = BigDecimal.valueOf(getTemperature(operation, register));
-        return new QuantityType<>(value.setScale(1, RoundingMode.HALF_UP), SIUnits.CELSIUS);
+    public Float getSupplyTemperature() throws IOException {
+        return getTemperature(REGISTER_4_READ, SUPPLY_TEMPERATURE);
     }
 
-    public DecimalType getBatteryLife() throws IOException {
-        return new DecimalType(BigDecimal.valueOf(asUnsignedByte(getByte(REGISTER_1_READ, BATTERY_LIFE))));
+    public Float getExtractTemperature() throws IOException {
+        return getTemperature(REGISTER_4_READ, EXTRACT_TEMPERATURE);
     }
 
-    public DecimalType getFilterLife() throws IOException {
-        BigDecimal value = BigDecimal.valueOf(asPercentByte(getByte(REGISTER_1_READ, FILTER_LIFE)));
-        return new DecimalType(value.setScale(1, RoundingMode.HALF_UP));
+    public Float getExhaustTemperature() throws IOException {
+        return getTemperature(REGISTER_4_READ, EXHAUST_TEMPERATURE);
     }
 
-    public DecimalType getFilterPeriod() throws IOException {
-        return new DecimalType(BigDecimal.valueOf(getByte(REGISTER_1_READ, FILTER_PERIOD)));
+    public int getBatteryLife() throws IOException {
+        return asUnsignedByte(getByte(REGISTER_1_READ, BATTERY_LIFE));
     }
 
-    public DecimalType setFilterPeriod(Command cmd) throws IOException {
-        return setNumberTypeRegister(cmd, FILTER_PERIOD);
+    public ZonedDateTime getCurrentTime() throws IOException, UnexpectedResponseValueException {
+        return getTimestamp(REGISTER_1_READ, CURRENT_TIME);
     }
 
-    public DateTimeType getCurrentTime() throws IOException, UnexpectedResponseValueException {
-        ZonedDateTime timestamp = getTimestamp(REGISTER_1_READ, CURRENT_TIME);
-        return new DateTimeType(timestamp);
+    public void setNightCooling(boolean nightCooling) throws IOException {
+        setOnOffTypeRegister(nightCooling, NIGHT_COOLING);
     }
 
-    private DecimalType setNumberTypeRegister(Command cmd, byte[] register) throws IOException {
-        if (cmd instanceof DecimalType decimalCommand) {
-            byte value = (byte) decimalCommand.intValue();
-            set(REGISTER_1_WRITE, register, value);
-        }
-        return new DecimalType(BigDecimal.valueOf(getByte(REGISTER_1_READ, register)));
+    public void setBypass(boolean bypass) throws IOException {
+         setOnOffTypeRegister(bypass, BYPASS);
     }
-
-    public OnOffType setNightCooling(Command cmd) throws IOException {
-        return setOnOffTypeRegister(cmd, NIGHT_COOLING);
-    }
-
-    public OnOffType setBypass(Command cmd) throws IOException {
-        return setOnOffTypeRegister(cmd, BYPASS);
-    }
-    */
 }

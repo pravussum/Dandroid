@@ -5,5 +5,5 @@ public enum Mode {
     PROGRAM,
     MANUAL,
     OFF,
-    UNKNOWN
+    NA
 }

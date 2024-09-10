@@ -81,13 +81,27 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     Column(modifier = Modifier.padding(16.dp)) {
-                        AirUnitDataTile("Unit name", mainState.unitName)
-                        AirUnitDataTile("Unit serial no", mainState.unitSerialNo)
-                        AirUnitDataTile("Mode", mainState.mode.name)
-                        AirUnitDataTile("Boost", mainState.boost)
-                        AirUnitDataTile("Supply Fan Speed", mainState.supplyFanSpeed)
-                        AirUnitDataTile("Extract Fan Speed", mainState.extractFanSpeed)
-                        AirUnitDataTile("Manual Fan Step", mainState.manualFanStep)
+                        DataFieldTile("Unit name", mainState.unitName)
+                        DataFieldTile("Unit serial no", mainState.unitSerialNo)
+                        DataFieldTile("Mode", mainState.mode.name)
+                        DataFieldTile("Boost", mainState.boost)
+                        DataFieldTile("Supply Fan Speed", mainState.supplyFanSpeed)
+                        DataFieldTile("Extract Fan Speed", mainState.extractFanSpeed)
+                        DataFieldTile("Manual Fan Step", mainState.manualFanStep)
+                        DataFieldTile("Filter Life", mainState.filterLife)
+                        DataFieldTile("Filter Period", mainState.filterPeriod)
+                        DataFieldTile("supplyFanStep", mainState.supplyFanStep)
+                        DataFieldTile("extractFanStep", mainState.extractFanStep)
+                        DataFieldTile("nightCooling", mainState.nightCooling)
+                        DataFieldTile("bypass", mainState.bypass)
+                        DataFieldTile("roomTemp", mainState.roomTemp)
+                        DataFieldTile("roomTempCalculated", mainState.roomTempCalculated)
+                        DataFieldTile("outdoorTemp", mainState.outdoorTemp)
+                        DataFieldTile("supplyTemp", mainState.supplyTemp)
+                        DataFieldTile("extractTemp", mainState.extractTemp)
+                        DataFieldTile("exhaustTemp", mainState.exhaustTemp)
+                        DataFieldTile("batteryLife", mainState.batteryLife)
+                        DataFieldTile("currentTime", mainState.currentTime)
                     }
                 }
                 ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
@@ -96,11 +110,12 @@ class MainActivity : ComponentActivity() {
                     "Boost",
                     getter = { mainState.boost },
                     setter = { mainViewModel.setBoost(it) })
-
                 SliderRow(
                     "Manual Fan Step",
                     { mainState.manualFanStep },
-                    { mainViewModel.setManualFanStep(it) })
+                    { mainViewModel.setManualFanStep(it) },
+                    100,
+                    10)
 
             }
         }
@@ -117,7 +132,9 @@ class MainActivity : ComponentActivity() {
     private fun SliderRow(
         title: String,
         getter: () -> Int?,
-        setter: (Int) -> Unit
+        setter: (Int) -> Unit,
+        max: Int,
+        steps: Int
     ) {
         Row(
             modifier = Modifier.padding(bottom = 16.dp),
@@ -135,8 +152,8 @@ class MainActivity : ComponentActivity() {
             }
             Slider(
                 value = sliderValueRaw,
-                valueRange = 0f..100f,
-                steps = 10,
+                valueRange = 0f..max.toFloat(),
+                steps = steps,
                 onValueChange = { sliderValueRaw = it },
                 onValueChangeFinished = { setter.invoke(sliderValueRaw.toInt()) }
             )
@@ -144,11 +161,11 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun AirUnitDataTile(title: String, value: Any?) {
+    private fun DataFieldTile(title: String, value: Any?) {
         Column {
             Text(title, fontSize = TextUnit(3f, Em))
             Text(
-                text = value?.toString() ?: "UNKNOWN",
+                text = value?.toString() ?: "N/A",
                 fontSize = TextUnit(4f, Em),
                 modifier = Modifier.padding(bottom = 8.dp)
             )

@@ -15,6 +15,7 @@ import net.mortalsilence.droidfoss.comm.Mode
 import net.mortalsilence.droidfoss.discovery.DanfossAirUnitDiscoveryService
 import net.mortalsilence.droidfoss.discovery.DiscoveryCache.DISCOVERY_CACHE_INSTANCE
 import java.net.InetAddress.getByName
+import java.time.ZonedDateTime
 
 data class MainState(
     val snackbarMessage: String? = null,
@@ -24,7 +25,22 @@ data class MainState(
     val extractFanSpeed: Short? = null,
     val unitName: String? = null,
     val unitSerialNo: String? = null,
-    val manualFanStep: Int? = null
+    val manualFanStep: Int? = null,
+    val filterLife: Float? = null,
+    val filterPeriod: Byte? = null,
+    val supplyFanStep: Byte? = null,
+    val extractFanStep: Byte? = null,
+    val nightCooling: Boolean? = null,
+    val bypass: Boolean? = null,
+    val roomTemp: Float? = null,
+    val roomTempCalculated: Float? = null,
+    val outdoorTemp: Float? = null,
+    val supplyTemp: Float? = null,
+    val extractTemp: Float? = null,
+    val exhaustTemp: Float? = null,
+    val batteryLife: Int? = null,
+    val currentTime: ZonedDateTime? = null,
+
 )
 
 class MainViewModel : ViewModel() {
@@ -33,7 +49,7 @@ class MainViewModel : ViewModel() {
         private const val TAG = "MainViewModel"
     }
 
-    var mainState by mutableStateOf(MainState(mode = Mode.UNKNOWN))
+    var mainState by mutableStateOf(MainState(mode = Mode.NA))
         private set
     private var fetchJob: Job? = null
 
@@ -54,7 +70,22 @@ class MainViewModel : ViewModel() {
                 extractFanSpeed = airUnit.extractFanSpeed,
                 unitName = airUnit.unitName,
                 unitSerialNo = airUnit.unitSerialNumber,
-                manualFanStep = airUnit.manualFanStep
+                manualFanStep = airUnit.manualFanStep,
+                filterLife = airUnit.filterLife,
+                filterPeriod = airUnit.filterPeriod,
+                supplyFanStep = airUnit.supplyFanStep,
+                extractFanStep = airUnit.extractFanStep,
+                nightCooling = airUnit.nightCooling,
+                bypass = airUnit.bypass,
+                roomTemp = airUnit.roomTemperature,
+                roomTempCalculated = airUnit.roomTemperatureCalculated,
+                outdoorTemp = airUnit.outdoorTemperature,
+                supplyTemp = airUnit.supplyTemperature,
+                extractTemp = airUnit.extractTemperature,
+                exhaustTemp = airUnit.exhaustTemperature,
+                batteryLife = airUnit.batteryLife,
+                currentTime = airUnit.currentTime
+
             )
         }
     }
@@ -70,6 +101,20 @@ class MainViewModel : ViewModel() {
         performWithAirUnit { airUnit ->
             airUnit.boost = boost
             mainState = mainState.copy(boost = airUnit.boost)
+        }
+    }
+
+    fun setBypass(bypass: Boolean) {
+        performWithAirUnit { airUnit ->
+            airUnit.bypass = bypass
+            mainState = mainState.copy(bypass = airUnit.bypass)
+        }
+    }
+
+    fun setNightCooling(nightCooling: Boolean) {
+        performWithAirUnit { airUnit ->
+            airUnit.nightCooling = nightCooling
+            mainState = mainState.copy(nightCooling = airUnit.nightCooling)
         }
     }
 
