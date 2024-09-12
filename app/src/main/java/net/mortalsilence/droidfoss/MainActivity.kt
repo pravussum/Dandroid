@@ -4,9 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowColumn
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.RadioButton
@@ -33,6 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color.Companion.LightGray
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.state.ToggleableState.Indeterminate
 import androidx.compose.ui.state.ToggleableState.Off
@@ -43,11 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dagger.hilt.android.AndroidEntryPoint
 import net.mortalsilence.droidfoss.comm.Mode
-import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
 import kotlin.enums.EnumEntries
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    val bigLabelFontSize = TextUnit(4f, Em)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +77,9 @@ class MainActivity : ComponentActivity() {
 
             val scrollState = rememberScrollState()
 
-            PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = { mainViewModel.fetchData() }) {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { mainViewModel.fetchData() }) {
                 Column(
                     modifier = Modifier
                         .verticalScroll(scrollState)
@@ -79,7 +87,9 @@ class MainActivity : ComponentActivity() {
                         .padding(paddingValues)
                         .padding(16.dp),
                 ) {
-                    FlowColumn(modifier = Modifier.padding(16.dp)) {
+                    FlowRow(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
                         DataFieldTile("Unit name", mainState.unitName)
                         DataFieldTile("Unit serial no", mainState.unitSerialNo)
                         DataFieldTile("Mode", mainState.mode.name)
@@ -89,8 +99,8 @@ class MainActivity : ComponentActivity() {
                         DataFieldTile("Manual Fan Step", mainState.manualFanStep)
                         DataFieldTile("Filter Life", mainState.filterLife)
                         DataFieldTile("Filter Period", mainState.filterPeriod)
-                        DataFieldTile("Supply Fan Speed", mainState.supplyFanStep)
-                        DataFieldTile("Extract Fan Speed", mainState.extractFanStep)
+                        DataFieldTile("Supply Fan Step", mainState.supplyFanStep)
+                        DataFieldTile("Extract Fan Step", mainState.extractFanStep)
                         DataFieldTile("Night Cooling", mainState.nightCooling)
                         DataFieldTile("Bypass", mainState.bypass)
                         DataFieldTile("Room temperature", mainState.roomTemp)
@@ -100,7 +110,9 @@ class MainActivity : ComponentActivity() {
                         DataFieldTile("Extract temperature", mainState.extractTemp)
                         DataFieldTile("Exhaust temperature", mainState.exhaustTemp)
                         DataFieldTile("Battery life (remaining)", mainState.batteryLife)
-                        DataFieldTile("Time", mainState.currentTime?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                        DataFieldTile(
+                            "Time", mainState.currentTime?.format(ISO_LOCAL_DATE_TIME)
+                        )
                     }
                     ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
                         setter = { mainViewModel.setMode(it) })
@@ -108,12 +120,23 @@ class MainActivity : ComponentActivity() {
                         "Boost",
                         getter = { mainState.boost },
                         setter = { mainViewModel.setBoost(it) })
+                    SwitchRow(
+                        "Night cooling",
+                        getter = { mainState.nightCooling },
+                        setter = { mainViewModel.setNightCooling(it) }
+                    )
+                    SwitchRow(
+                        "Bypass",
+                        getter = { mainState.bypass },
+                        setter = { mainViewModel.setBypass(it) }
+                    )
                     SliderRow(
                         "Manual Fan Step",
                         { mainState.manualFanStep },
                         { mainViewModel.setManualFanStep(it) },
                         100,
-                        10)
+                        10
+                    )
 
                 }
             }
@@ -128,6 +151,25 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
+    private fun DataFieldTile(title: String, value: Any?) {
+        Box(
+            modifier = Modifier
+                .padding(2.dp)
+                .clip(RoundedCornerShape(20))
+                .background(color = LightGray)
+                .padding(6.dp)
+        ) {
+            Column {
+                Text(title, fontSize = TextUnit(3f, Em))
+                Text(
+                    text = value?.toString() ?: "N/A",
+                    fontSize = TextUnit(4f, Em)
+                )
+            }
+        }
+    }
+
+    @Composable
     private fun SliderRow(
         title: String,
         getter: () -> Int?,
@@ -136,13 +178,12 @@ class MainActivity : ComponentActivity() {
         steps: Int
     ) {
         Row(
-            modifier = Modifier.padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 "$title: ",
                 modifier = Modifier.padding(end = 16.dp),
-                fontSize = TextUnit(6f, Em)
+                fontSize = bigLabelFontSize
             )
             var sliderValueRaw by remember(getter) {
                 mutableFloatStateOf(
@@ -159,18 +200,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    private fun DataFieldTile(title: String, value: Any?) {
-        Column {
-            Text(title, fontSize = TextUnit(3f, Em))
-            Text(
-                text = value?.toString() ?: "N/A",
-                fontSize = TextUnit(4f, Em),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-    }
-
     @OptIn(ExperimentalLayoutApi::class)
     @Composable
     private fun <T : Enum<T>> ChoiceRow(
@@ -180,13 +209,12 @@ class MainActivity : ComponentActivity() {
         setter: (T) -> Unit
     ) {
         Row(
-            modifier = Modifier.padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 "$title: ",
                 modifier = Modifier.padding(end = 16.dp),
-                fontSize = TextUnit(6f, Em)
+                fontSize = bigLabelFontSize
             )
             FlowRow(Modifier.selectableGroup()) {
                 choices.forEach { choice ->
@@ -214,13 +242,12 @@ class MainActivity : ComponentActivity() {
         setter: (Boolean) -> Unit
     ) {
         Row(
-            modifier = Modifier.padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 "$title: ",
                 modifier = Modifier.padding(end = 16.dp),
-                fontSize = TextUnit(6f, Em)
+                fontSize = bigLabelFontSize
             )
             var stateRaw by remember(getter) {
                 mutableStateOf(toggleableState(getter))
