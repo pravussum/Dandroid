@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -42,7 +43,7 @@ public class DanfossAirUnitDiscoveryService {
                     sendBroadcastToDiscoverThing(socket, interfaceAddress.getBroadcast());
                 }
             }
-        } catch (IOException e) {
+        } catch ( IOException e) {
             Log.d(TAG, "No Danfoss Air CCM device found. Diagnostic: " + e.getMessage());
         }
     }

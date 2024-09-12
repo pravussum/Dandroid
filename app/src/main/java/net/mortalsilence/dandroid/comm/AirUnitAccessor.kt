@@ -3,7 +3,9 @@ package net.mortalsilence.dandroid.comm
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
+import kotlinx.coroutines.handleCoroutineException
 import net.mortalsilence.dandroid.BuildConfig
+import net.mortalsilence.dandroid.backgroundsync.AirUnitNotAvailable
 import net.mortalsilence.dandroid.backgroundsync.AirUnitRequestFailed
 import net.mortalsilence.dandroid.comm.discovery.DanfossAirUnitDiscoveryService
 import net.mortalsilence.dandroid.comm.discovery.DiscoveryCache.DISCOVERY_CACHE_INSTANCE
@@ -11,6 +13,7 @@ import net.mortalsilence.dandroid.data.AirUnitState
 import net.mortalsilence.dandroid.repository.AirUnitStateRepository
 import java.net.InetAddress.getByName
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
 
 class AirUnitAccessor @Inject constructor(
     val applicationScope: CoroutineScope,
@@ -59,7 +62,7 @@ class AirUnitAccessor @Inject constructor(
     }
 
     private fun performWithAirUnitInternal(action: (airUnit: DanfossAirUnit) -> Any): Any {
-        try {
+
             if (BuildConfig.AIR_UNIT_IP.isNotBlank()) {
                 DISCOVERY_CACHE_INSTANCE.host = BuildConfig.AIR_UNIT_IP
             } else {
@@ -68,8 +71,9 @@ class AirUnitAccessor @Inject constructor(
             }
             if (DISCOVERY_CACHE_INSTANCE.host == null) {
                 Log.i(TAG, "No AirUnit found...")
-                throw AirUnitRequestFailed()
+                throw AirUnitNotAvailable()
             }
+        try {
             val commController =
                 DanfossAirUnitCommunicationController(getByName(DISCOVERY_CACHE_INSTANCE.host))
             val airUnit = DanfossAirUnit(commController)

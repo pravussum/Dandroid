@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import net.mortalsilence.dandroid.backgroundsync.AirUnitNotAvailable
 import net.mortalsilence.dandroid.comm.AirUnitAccessor
 import net.mortalsilence.dandroid.comm.DanfossAirUnit
 import net.mortalsilence.dandroid.comm.Mode
@@ -20,7 +21,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     val airUnitStateRepository: AirUnitStateRepository,
     val airUnitAccessor: AirUnitAccessor
-) : ViewModel () {
+) : ViewModel() {
 
     companion object {
         private const val TAG = "MainViewModel"
@@ -49,7 +50,6 @@ class MainViewModel @Inject constructor(
             }
         }
     }
-
 
 
     private var fetchJob: Job? = null
@@ -102,14 +102,24 @@ class MainViewModel @Inject constructor(
         isRefreshing = true
         fetchJob?.cancel()
         fetchJob = viewModelScope.launch {
-            airUnitAccessor.fetchData()
+            try {
+                airUnitAccessor.fetchData()
+            } catch (e: AirUnitNotAvailable) {
+                isRefreshing = false
+                sendMessage("Air unit not available!")
+            }
         }
     }
 
     private fun performWithAirUnit(action: (airUnit: DanfossAirUnit) -> Unit) {
         fetchJob?.cancel()
         fetchJob = viewModelScope.launch {
-            airUnitAccessor.performWithAirUnit(action)
+            try {
+                airUnitAccessor.performWithAirUnit(action)
+            } catch (e: AirUnitNotAvailable) {
+                isRefreshing = false
+                sendMessage("Air unit not available")
+            }
         }
     }
 }

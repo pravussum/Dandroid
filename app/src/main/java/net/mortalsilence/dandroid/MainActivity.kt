@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color.Companion.LightGray
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.state.ToggleableState.Indeterminate
 import androidx.compose.ui.state.ToggleableState.Off
@@ -90,22 +91,22 @@ class MainActivity : ComponentActivity() {
                     FlowRow(
                         modifier = Modifier.padding(16.dp)
                     ) {
-                        DataFieldTile("Unit name", mainState.unitName)
-                        DataFieldTile("Unit serial no", mainState.unitSerialNo)
-                        DataFieldTile("Mode", mainState.mode.name)
-                        DataFieldTile("Boost", mainState.boost)
-                        DataFieldTile("Supply Fan Speed", mainState.supplyFanSpeed)
-                        DataFieldTile("Extract Fan Speed", mainState.extractFanSpeed)
-                        DataFieldTile("Manual Fan Step", mainState.manualFanStep)
-                        DataFieldTile("Filter Life", mainState.filterLife)
-                        DataFieldTile("Filter Period", mainState.filterPeriod)
-                        DataFieldTile("Supply Fan Step", mainState.supplyFanStep)
-                        DataFieldTile("Extract Fan Step", mainState.extractFanStep)
-                        DataFieldTile("Night Cooling", mainState.nightCooling)
-                        DataFieldTile("Bypass", mainState.bypass)
-                        DataFieldTile("Room temperature", mainState.roomTemp)
-                        DataFieldTile("Room temperature (calculated)", mainState.roomTempCalculated)
-                        DataFieldTile("Outdoor temperature", mainState.outdoorTemp)
+                        DataFieldTile(stringResource(R.string.label_unit_name), mainState.unitName)
+                        DataFieldTile(stringResource(R.string.label_unit_serial), mainState.unitSerialNo)
+                        DataFieldTile(stringResource(R.string.label_mode), mainState.mode.name)
+                        DataFieldTile(stringResource(R.string.label_boost), mainState.boost)
+                        DataFieldTile(stringResource(R.string.label_supply_fan_speed), mainState.supplyFanSpeed)
+                        DataFieldTile(stringResource(R.string.label_extract_fan_speed), mainState.extractFanSpeed)
+                        DataFieldTile(stringResource(R.string.label_manual_fan_step), mainState.manualFanStep)
+                        DataFieldTile(stringResource(R.string.label_filter_life), mainState.filterLife)
+                        DataFieldTile(stringResource(R.string.label_filter_period), mainState.filterPeriod)
+                        DataFieldTile(stringResource(R.string.label_supply_fan_step), mainState.supplyFanStep)
+                        DataFieldTile(stringResource(R.string.label_extract_fan_step), mainState.extractFanStep)
+                        DataFieldTile(stringResource(R.string.label_night_cooling), mainState.nightCooling)
+                        DataFieldTile(stringResource(R.string.label_bypass), mainState.bypass)
+                        DataFieldTile(stringResource(R.string.label_room_temperature), mainState.roomTemp)
+                        DataFieldTile(stringResource(R.string.label_room_temperature_calculated), mainState.roomTempCalculated)
+                        DataFieldTile(stringResource(R.string.label_outdoor_temperature), mainState.outdoorTemp)
                         DataFieldTile("Supply temperature", mainState.supplyTemp)
                         DataFieldTile("Extract temperature", mainState.extractTemp)
                         DataFieldTile("Exhaust temperature", mainState.exhaustTemp)

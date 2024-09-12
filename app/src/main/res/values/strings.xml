@@ -1,3 +1,19 @@
 <resources>
     <string name="app_name">Danfoss Remote</string>
+    <string name="label_unit_name">Unit name</string>
+    <string name="label_unit_serial">Unit serial no</string>
+    <string name="label_mode">Mode</string>
+    <string name="label_boost">Boost</string>
+    <string name="label_supply_fan_speed">Supply Fan Speed</string>
+    <string name="label_extract_fan_speed">Extract Fan Speed</string>
+    <string name="label_manual_fan_step">Manual Fan Step</string>
+    <string name="label_filter_life">Filter Life</string>
+    <string name="label_filter_period">Filter Period</string>
+    <string name="label_supply_fan_step">Supply Fan Step</string>
+    <string name="label_extract_fan_step">Extract Fan Step</string>
+    <string name="label_night_cooling">Night Cooling</string>
+    <string name="label_bypass">Bypass</string>
+    <string name="label_room_temperature">Room temperature</string>
+    <string name="label_room_temperature_calculated">Room temperature (calculated)</string>
+    <string name="label_outdoor_temperature">Outdoor temperature</string>
 </resources>
