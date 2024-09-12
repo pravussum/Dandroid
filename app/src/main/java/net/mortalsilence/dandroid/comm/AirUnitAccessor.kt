@@ -3,17 +3,17 @@ package net.mortalsilence.dandroid.comm
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
-import kotlinx.coroutines.handleCoroutineException
 import net.mortalsilence.dandroid.BuildConfig
-import net.mortalsilence.dandroid.backgroundsync.AirUnitNotAvailable
+import net.mortalsilence.dandroid.backgroundsync.AirUnitNotFound
 import net.mortalsilence.dandroid.backgroundsync.AirUnitRequestFailed
+import net.mortalsilence.dandroid.backgroundsync.AirUnitRequestTimeout
 import net.mortalsilence.dandroid.comm.discovery.DanfossAirUnitDiscoveryService
 import net.mortalsilence.dandroid.comm.discovery.DiscoveryCache.DISCOVERY_CACHE_INSTANCE
 import net.mortalsilence.dandroid.data.AirUnitState
 import net.mortalsilence.dandroid.repository.AirUnitStateRepository
 import java.net.InetAddress.getByName
+import java.net.SocketTimeoutException
 import javax.inject.Inject
-import kotlin.coroutines.CoroutineContext
 
 class AirUnitAccessor @Inject constructor(
     val applicationScope: CoroutineScope,
@@ -56,9 +56,15 @@ class AirUnitAccessor @Inject constructor(
     }
 
     suspend fun performWithAirUnit(action: (airUnit: DanfossAirUnit) -> Any): Any {
-        return applicationScope.async {
-            performWithAirUnitInternal(action)
-        }.await()
+       try {
+           return applicationScope.async {
+               performWithAirUnitInternal(action)
+           }.await()
+       } catch(e: AirUnitNotFound) {
+           throw e
+       } catch (e: AirUnitRequestTimeout){
+           throw e
+       }
     }
 
     private fun performWithAirUnitInternal(action: (airUnit: DanfossAirUnit) -> Any): Any {
@@ -71,7 +77,7 @@ class AirUnitAccessor @Inject constructor(
             }
             if (DISCOVERY_CACHE_INSTANCE.host == null) {
                 Log.i(TAG, "No AirUnit found...")
-                throw AirUnitNotAvailable()
+                throw AirUnitNotFound()
             }
         try {
             val commController =
@@ -80,6 +86,9 @@ class AirUnitAccessor @Inject constructor(
             val result = action.invoke(airUnit)
             Log.i(TAG, "Air unit request successful!")
             return result
+        } catch (e: SocketTimeoutException) {
+            Log.e(TAG, "AirUnit request timed out. Maybe air unit already bound?")
+            throw AirUnitRequestTimeout(e)
         } catch (e: Exception) {
             Log.e(TAG, "AirUnit request failed: ${e.message}")
             throw AirUnitRequestFailed(e)

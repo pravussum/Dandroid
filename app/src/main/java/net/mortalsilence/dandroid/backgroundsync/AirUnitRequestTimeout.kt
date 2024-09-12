@@ -1,6 +1,6 @@
 package net.mortalsilence.dandroid.backgroundsync
 
-class AirUnitNotAvailable : Exception {
+class AirUnitRequestTimeout : Exception {
 
     constructor() : super()
 

@@ -9,7 +9,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import net.mortalsilence.dandroid.backgroundsync.AirUnitNotAvailable
+import net.mortalsilence.dandroid.backgroundsync.AirUnitNotFound
+import net.mortalsilence.dandroid.backgroundsync.AirUnitRequestTimeout
 import net.mortalsilence.dandroid.comm.AirUnitAccessor
 import net.mortalsilence.dandroid.comm.DanfossAirUnit
 import net.mortalsilence.dandroid.comm.Mode
@@ -104,9 +105,12 @@ class MainViewModel @Inject constructor(
         fetchJob = viewModelScope.launch {
             try {
                 airUnitAccessor.fetchData()
-            } catch (e: AirUnitNotAvailable) {
+            } catch (e: AirUnitNotFound) {
                 isRefreshing = false
-                sendMessage("Air unit not available!")
+                sendMessage("No air found. Check network.")
+            } catch (e: AirUnitRequestTimeout) {
+                isRefreshing = false
+                sendMessage("Cannot reach air unit. Maybe something else is already connected?")
             }
         }
     }
@@ -116,9 +120,12 @@ class MainViewModel @Inject constructor(
         fetchJob = viewModelScope.launch {
             try {
                 airUnitAccessor.performWithAirUnit(action)
-            } catch (e: AirUnitNotAvailable) {
+            } catch (e: AirUnitNotFound) {
                 isRefreshing = false
-                sendMessage("Air unit not available")
+                sendMessage("No air found. Check network.")
+            } catch (e: AirUnitRequestTimeout) {
+                isRefreshing = false
+                sendMessage("Cannot reach air unit. Maybe something else is already connected?")
             }
         }
     }
