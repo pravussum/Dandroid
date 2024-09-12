@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Droidfoss"
+rootProject.name = "Dandroid"
 include(":app")
  

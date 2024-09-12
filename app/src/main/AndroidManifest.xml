@@ -12,14 +12,14 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Droidfoss"
+        android:theme="@style/Theme.Dandroid"
         tools:targetApi="31"
         android:name=".DandroidApplication">
         <activity
-            android:name="net.mortalsilence.droidfoss.MainActivity"
+            android:name="net.mortalsilence.dandroid.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Droidfoss">
+            android:theme="@style/Theme.Dandroid">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
