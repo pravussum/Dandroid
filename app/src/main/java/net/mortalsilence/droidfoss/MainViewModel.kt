@@ -1,14 +1,13 @@
 package net.mortalsilence.droidfoss
 
 import android.util.Log
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.mortalsilence.droidfoss.comm.AirUnitAccessor
@@ -31,18 +30,37 @@ class MainViewModel @Inject constructor(
     var airUnitState by mutableStateOf(AirUnitState(mode = Mode.NA))
         private set
 
-    val airUnitLiveData: MutableLiveData<AirUnitState> by lazy {
-        MutableLiveData<AirUnitState>()
+    var snackbarMessage by (mutableStateOf(null as String?))
+        private set
+
+    var isRefreshing by mutableStateOf(false)
+        private set
+
+    init {
+        observeRepository()
+        fetchData()
     }
+
+    private fun observeRepository() {
+        viewModelScope.launch {
+            airUnitStateRepository.airUnitState.collect { stateUpdate ->
+                Log.d(TAG, "Received state update from repository...")
+                airUnitState = stateUpdate
+                isRefreshing = false
+            }
+        }
+    }
+
+
 
     private var fetchJob: Job? = null
 
     fun sendMessage(message: String) {
-        airUnitState = airUnitState.copy(snackbarMessage = message)
+        snackbarMessage = message
     }
 
     fun markMessageShown() {
-        airUnitState = airUnitState.copy(snackbarMessage = null)
+        snackbarMessage = null
     }
 
     fun setMode(mode: Mode) {
@@ -82,10 +100,10 @@ class MainViewModel @Inject constructor(
     }
 
     fun fetchData() {
-        // TODO handle/keep snackbar message
+        isRefreshing = true
         fetchJob?.cancel()
         fetchJob = viewModelScope.launch {
-            airUnitState = airUnitAccessor.fetchData()
+            airUnitAccessor.fetchData()
         }
     }
 

@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowColumn
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -22,6 +23,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TriStateCheckbox
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dagger.hilt.android.AndroidEntryPoint
 import net.mortalsilence.droidfoss.comm.Mode
+import java.time.format.DateTimeFormatter
 import kotlin.enums.EnumEntries
 
 @AndroidEntryPoint
@@ -54,10 +57,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
     @Composable
     private fun Content(mainViewModel: MainViewModel = viewModel()) {
         val snackbarHostState = remember { SnackbarHostState() }
         val mainState by mainViewModel::airUnitState
+        val snackbarMessage by mainViewModel::snackbarMessage
+        val isRefreshing by mainViewModel::isRefreshing
 
         Scaffold(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -65,23 +71,15 @@ class MainActivity : ComponentActivity() {
 
             val scrollState = rememberScrollState()
 
-            Column(
-                modifier = Modifier
-                    .verticalScroll(scrollState)
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.padding(bottom = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = { mainViewModel.fetchData() }) {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(scrollState)
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(16.dp),
                 ) {
-                    Column(modifier = Modifier.padding(end = 16.dp)) {
-                        Button(onClick = { mainViewModel.fetchData() }) {
-                            Text(text = "Fetch AirUnit data")
-                        }
-                    }
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    FlowColumn(modifier = Modifier.padding(16.dp)) {
                         DataFieldTile("Unit name", mainState.unitName)
                         DataFieldTile("Unit serial no", mainState.unitSerialNo)
                         DataFieldTile("Mode", mainState.mode.name)
@@ -91,37 +89,37 @@ class MainActivity : ComponentActivity() {
                         DataFieldTile("Manual Fan Step", mainState.manualFanStep)
                         DataFieldTile("Filter Life", mainState.filterLife)
                         DataFieldTile("Filter Period", mainState.filterPeriod)
-                        DataFieldTile("supplyFanStep", mainState.supplyFanStep)
-                        DataFieldTile("extractFanStep", mainState.extractFanStep)
-                        DataFieldTile("nightCooling", mainState.nightCooling)
-                        DataFieldTile("bypass", mainState.bypass)
-                        DataFieldTile("roomTemp", mainState.roomTemp)
-                        DataFieldTile("roomTempCalculated", mainState.roomTempCalculated)
-                        DataFieldTile("outdoorTemp", mainState.outdoorTemp)
-                        DataFieldTile("supplyTemp", mainState.supplyTemp)
-                        DataFieldTile("extractTemp", mainState.extractTemp)
-                        DataFieldTile("exhaustTemp", mainState.exhaustTemp)
-                        DataFieldTile("batteryLife", mainState.batteryLife)
-                        DataFieldTile("currentTime", mainState.currentTime)
+                        DataFieldTile("Supply Fan Speed", mainState.supplyFanStep)
+                        DataFieldTile("Extract Fan Speed", mainState.extractFanStep)
+                        DataFieldTile("Night Cooling", mainState.nightCooling)
+                        DataFieldTile("Bypass", mainState.bypass)
+                        DataFieldTile("Room temperature", mainState.roomTemp)
+                        DataFieldTile("Room temperature (calculated)", mainState.roomTempCalculated)
+                        DataFieldTile("Outdoor temperature", mainState.outdoorTemp)
+                        DataFieldTile("Supply temperature", mainState.supplyTemp)
+                        DataFieldTile("Extract temperature", mainState.extractTemp)
+                        DataFieldTile("Exhaust temperature", mainState.exhaustTemp)
+                        DataFieldTile("Battery life (remaining)", mainState.batteryLife)
+                        DataFieldTile("Time", mainState.currentTime?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                     }
-                }
-                ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
-                    setter = { mainViewModel.setMode(it) })
-                SwitchRow(
-                    "Boost",
-                    getter = { mainState.boost },
-                    setter = { mainViewModel.setBoost(it) })
-                SliderRow(
-                    "Manual Fan Step",
-                    { mainState.manualFanStep },
-                    { mainViewModel.setManualFanStep(it) },
-                    100,
-                    10)
+                    ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
+                        setter = { mainViewModel.setMode(it) })
+                    SwitchRow(
+                        "Boost",
+                        getter = { mainState.boost },
+                        setter = { mainViewModel.setBoost(it) })
+                    SliderRow(
+                        "Manual Fan Step",
+                        { mainState.manualFanStep },
+                        { mainViewModel.setManualFanStep(it) },
+                        100,
+                        10)
 
+                }
             }
         }
 
-        mainState.snackbarMessage?.let { message ->
+        snackbarMessage?.let { message ->
             LaunchedEffect(key1 = message) {
                 snackbarHostState.showSnackbar(message)
                 mainViewModel.markMessageShown()

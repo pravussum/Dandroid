@@ -4,7 +4,6 @@ import net.mortalsilence.droidfoss.comm.Mode
 import java.time.ZonedDateTime
 
 data class AirUnitState(
-    val snackbarMessage: String? = null,
     val mode: Mode,
     val boost: Boolean? = null,
     val supplyFanSpeed: Short? = null,

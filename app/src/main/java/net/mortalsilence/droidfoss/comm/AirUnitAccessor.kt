@@ -8,18 +8,20 @@ import net.mortalsilence.droidfoss.backgroundsync.AirUnitRequestFailed
 import net.mortalsilence.droidfoss.comm.discovery.DanfossAirUnitDiscoveryService
 import net.mortalsilence.droidfoss.comm.discovery.DiscoveryCache.DISCOVERY_CACHE_INSTANCE
 import net.mortalsilence.droidfoss.data.AirUnitState
+import net.mortalsilence.droidfoss.repository.AirUnitStateRepository
 import java.net.InetAddress.getByName
 import javax.inject.Inject
 
 class AirUnitAccessor @Inject constructor(
-    val applicationScope: CoroutineScope){
+    val applicationScope: CoroutineScope,
+    val airUnitStateRepository: AirUnitStateRepository){
 
     companion object {
         private const val TAG = "AirUnitAccessor"
     }
 
     suspend fun fetchData(): AirUnitState {
-        return performWithAirUnit { airUnit ->
+        val airUnitState = performWithAirUnit { airUnit ->
             AirUnitState(
                 mode = airUnit.mode,
                 boost = airUnit.boost,
@@ -44,6 +46,10 @@ class AirUnitAccessor @Inject constructor(
                 currentTime = airUnit.currentTime
             )
         } as AirUnitState
+
+        airUnitStateRepository.save(airUnitState)
+
+        return airUnitState
     }
 
     suspend fun performWithAirUnit(action: (airUnit: DanfossAirUnit) -> Any): Any {
