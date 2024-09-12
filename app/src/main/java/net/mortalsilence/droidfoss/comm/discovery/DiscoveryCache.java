@@ -1,4 +1,4 @@
-package net.mortalsilence.droidfoss.discovery;
+package net.mortalsilence.droidfoss.comm.discovery;
 
 public enum DiscoveryCache {
 

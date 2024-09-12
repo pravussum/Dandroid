@@ -1,6 +1,4 @@
-package net.mortalsilence.droidfoss.discovery;
-
-import static net.mortalsilence.droidfoss.discovery.DiscoveryCache.DISCOVERY_CACHE_INSTANCE;
+package net.mortalsilence.droidfoss.comm.discovery;
 
 import android.util.Log;
 
@@ -76,7 +74,7 @@ public class DanfossAirUnitDiscoveryService {
                 String host = receivePacket.getAddress().getHostName();
                 Log.d(TAG, "unit hostname " + host);
                 Log.d(TAG, "unit address " + receivePacket.getAddress().hashCode());
-                DISCOVERY_CACHE_INSTANCE.setHost(host);
+                DiscoveryCache.DISCOVERY_CACHE_INSTANCE.setHost(host);
             }
         }
         Log.d(TAG, "after endless loop");

@@ -39,11 +39,12 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType.Companion.Em
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dagger.hilt.android.AndroidEntryPoint
 import net.mortalsilence.droidfoss.comm.Mode
 import kotlin.enums.EnumEntries
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +57,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun Content(mainViewModel: MainViewModel = viewModel()) {
         val snackbarHostState = remember { SnackbarHostState() }
-        val mainState by mainViewModel::mainState
+        val mainState by mainViewModel::airUnitState
 
         Scaffold(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) }

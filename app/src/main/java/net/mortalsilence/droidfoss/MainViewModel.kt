@@ -4,117 +4,72 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import net.mortalsilence.droidfoss.comm.AirUnitAccessor
 import net.mortalsilence.droidfoss.comm.DanfossAirUnit
-import net.mortalsilence.droidfoss.comm.DanfossAirUnitCommunicationController
 import net.mortalsilence.droidfoss.comm.Mode
-import net.mortalsilence.droidfoss.discovery.DanfossAirUnitDiscoveryService
-import net.mortalsilence.droidfoss.discovery.DiscoveryCache.DISCOVERY_CACHE_INSTANCE
-import java.net.InetAddress.getByName
-import java.time.ZonedDateTime
+import net.mortalsilence.droidfoss.data.AirUnitState
+import net.mortalsilence.droidfoss.repository.AirUnitStateRepository
+import javax.inject.Inject
 
-data class MainState(
-    val snackbarMessage: String? = null,
-    val mode: Mode,
-    val boost: Boolean? = null,
-    val supplyFanSpeed: Short? = null,
-    val extractFanSpeed: Short? = null,
-    val unitName: String? = null,
-    val unitSerialNo: String? = null,
-    val manualFanStep: Int? = null,
-    val filterLife: Float? = null,
-    val filterPeriod: Byte? = null,
-    val supplyFanStep: Byte? = null,
-    val extractFanStep: Byte? = null,
-    val nightCooling: Boolean? = null,
-    val bypass: Boolean? = null,
-    val roomTemp: Float? = null,
-    val roomTempCalculated: Float? = null,
-    val outdoorTemp: Float? = null,
-    val supplyTemp: Float? = null,
-    val extractTemp: Float? = null,
-    val exhaustTemp: Float? = null,
-    val batteryLife: Int? = null,
-    val currentTime: ZonedDateTime? = null,
-
-)
-
-class MainViewModel : ViewModel() {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    val airUnitStateRepository: AirUnitStateRepository,
+    val airUnitAccessor: AirUnitAccessor
+) : ViewModel () {
 
     companion object {
         private const val TAG = "MainViewModel"
     }
 
-    var mainState by mutableStateOf(MainState(mode = Mode.NA))
+    var airUnitState by mutableStateOf(AirUnitState(mode = Mode.NA))
         private set
+
+    val airUnitLiveData: MutableLiveData<AirUnitState> by lazy {
+        MutableLiveData<AirUnitState>()
+    }
+
     private var fetchJob: Job? = null
 
     fun sendMessage(message: String) {
-        mainState = mainState.copy(snackbarMessage = message)
+        airUnitState = airUnitState.copy(snackbarMessage = message)
     }
 
     fun markMessageShown() {
-        mainState = mainState.copy(snackbarMessage = null)
-    }
-
-    fun fetchData() {
-        performWithAirUnit { airUnit ->
-            mainState = mainState.copy(
-                mode = airUnit.mode,
-                boost = airUnit.boost,
-                supplyFanSpeed = airUnit.supplyFanSpeed,
-                extractFanSpeed = airUnit.extractFanSpeed,
-                unitName = airUnit.unitName,
-                unitSerialNo = airUnit.unitSerialNumber,
-                manualFanStep = airUnit.manualFanStep,
-                filterLife = airUnit.filterLife,
-                filterPeriod = airUnit.filterPeriod,
-                supplyFanStep = airUnit.supplyFanStep,
-                extractFanStep = airUnit.extractFanStep,
-                nightCooling = airUnit.nightCooling,
-                bypass = airUnit.bypass,
-                roomTemp = airUnit.roomTemperature,
-                roomTempCalculated = airUnit.roomTemperatureCalculated,
-                outdoorTemp = airUnit.outdoorTemperature,
-                supplyTemp = airUnit.supplyTemperature,
-                extractTemp = airUnit.extractTemperature,
-                exhaustTemp = airUnit.exhaustTemperature,
-                batteryLife = airUnit.batteryLife,
-                currentTime = airUnit.currentTime
-
-            )
-        }
+        airUnitState = airUnitState.copy(snackbarMessage = null)
     }
 
     fun setMode(mode: Mode) {
         performWithAirUnit { airUnit ->
             airUnit.mode = mode
-            mainState = mainState.copy(mode = airUnit.mode)
+            airUnitState = airUnitState.copy(mode = airUnit.mode)
         }
     }
 
     fun setBoost(boost: Boolean) {
         performWithAirUnit { airUnit ->
             airUnit.boost = boost
-            mainState = mainState.copy(boost = airUnit.boost)
+            airUnitState = airUnitState.copy(boost = airUnit.boost)
         }
     }
 
     fun setBypass(bypass: Boolean) {
         performWithAirUnit { airUnit ->
             airUnit.bypass = bypass
-            mainState = mainState.copy(bypass = airUnit.bypass)
+            airUnitState = airUnitState.copy(bypass = airUnit.bypass)
         }
     }
 
     fun setNightCooling(nightCooling: Boolean) {
         performWithAirUnit { airUnit ->
             airUnit.nightCooling = nightCooling
-            mainState = mainState.copy(nightCooling = airUnit.nightCooling)
+            airUnitState = airUnitState.copy(nightCooling = airUnit.nightCooling)
         }
     }
 
@@ -122,34 +77,22 @@ class MainViewModel : ViewModel() {
         Log.d(TAG, "setManualFanStep $step")
         performWithAirUnit { airUnit ->
             airUnit.manualFanStep = step
-            mainState = mainState.copy(manualFanStep = airUnit.manualFanStep)
+            airUnitState = airUnitState.copy(manualFanStep = airUnit.manualFanStep)
         }
     }
 
-    fun performWithAirUnit(action: (airUnit: DanfossAirUnit) -> Unit) {
-        sendMessage("Sending AirUnit request...")
+    fun fetchData() {
+        // TODO handle/keep snackbar message
         fetchJob?.cancel()
-        fetchJob = viewModelScope.launch(context = Dispatchers.IO) {
-            try {
-                if (BuildConfig.AIR_UNIT_IP.isNotBlank()) {
-                    DISCOVERY_CACHE_INSTANCE.host = BuildConfig.AIR_UNIT_IP
-                } else {
-                    DanfossAirUnitDiscoveryService().scanForDevice()
-                }
-                if (DISCOVERY_CACHE_INSTANCE.host == null) {
-                    Log.i(TAG, "No AirUnit found...")
-                    sendMessage("No Danfoss AirUnit found in network")
-                    return@launch
-                }
-                val commController =
-                    DanfossAirUnitCommunicationController(getByName(DISCOVERY_CACHE_INSTANCE.host))
-                val airUnit = DanfossAirUnit(commController)
-                action.invoke(airUnit)
-                sendMessage("Air unit request successful!")
-            } catch (e: Exception) {
-                e.printStackTrace()
-                sendMessage("AirUnit request failed: ${e.message}")
-            }
+        fetchJob = viewModelScope.launch {
+            airUnitState = airUnitAccessor.fetchData()
+        }
+    }
+
+    private fun performWithAirUnit(action: (airUnit: DanfossAirUnit) -> Unit) {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
+            airUnitAccessor.performWithAirUnit(action)
         }
     }
 }
