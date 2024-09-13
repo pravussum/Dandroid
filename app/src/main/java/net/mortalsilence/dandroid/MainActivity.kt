@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -72,6 +73,7 @@ import kotlin.enums.EnumEntries
 class MainActivity : ComponentActivity() {
 
     private val bigLabelFontSize = TextUnit(4f, Em)
+    private val topPadding = 60.dp
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -110,7 +112,7 @@ class MainActivity : ComponentActivity() {
         ) { paddingValues ->
             when (currentScreen) {
                 airunitstate -> HomeScreen(isRefreshing, mainViewModel, scrollState, mainState)
-                airunitsettings -> AirUnitSettingsScreen(mainViewModel, mainState, paddingValues)
+                airunitsettings -> AirUnitSettingsScreen(mainViewModel, mainState)
                 preferences -> PreferencesScreen(mainViewModel, paddingValues)
             }
         }
@@ -131,7 +133,7 @@ class MainActivity : ComponentActivity() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 30.dp)
+                .padding(top = topPadding)
                 .padding(16.dp),
         ) {
             Text(
@@ -155,17 +157,14 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun AirUnitSettingsScreen(
         mainViewModel: MainViewModel,
-        mainState: AirUnitState,
-        paddingValues: PaddingValues
+        mainState: AirUnitState
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 30.dp)
+                .padding(top = topPadding)
                 .padding(16.dp),
         ) {
-            ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
-                setter = { mainViewModel.setMode(it) })
             SwitchRow(
                 "Boost",
                 getter = { mainState.boost },
@@ -180,6 +179,8 @@ class MainActivity : ComponentActivity() {
                 getter = { mainState.bypass },
                 setter = { mainViewModel.setBypass(it) }
             )
+            ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
+                setter = { mainViewModel.setMode(it) })
             SliderRow(
                 "Manual Fan Step",
                 { mainState.manualFanStep },
@@ -205,7 +206,7 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .verticalScroll(scrollState)
                     .fillMaxSize()
-                    .padding(top = 30.dp)
+                    .padding(top = topPadding)
                     .padding(16.dp),
             ) {
                 FlowRow(
@@ -320,7 +321,8 @@ class MainActivity : ComponentActivity() {
         setter: (T) -> Unit
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
         ) {
             Text(
                 "$title: ",
@@ -352,14 +354,7 @@ class MainActivity : ComponentActivity() {
         getter: () -> Boolean?,
         setter: (Boolean) -> Unit
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "$title: ",
-                modifier = Modifier.padding(end = 16.dp),
-                fontSize = bigLabelFontSize
-            )
+        Row( verticalAlignment = Alignment.CenterVertically) {
             var stateRaw by remember(getter) {
                 mutableStateOf(toggleableState(getter))
             }
@@ -374,6 +369,7 @@ class MainActivity : ComponentActivity() {
                     if (stateRaw != Indeterminate) setter.invoke(stateRaw == On)
                 }
             )
+            Text(title,fontSize = bigLabelFontSize)
         }
     }
 

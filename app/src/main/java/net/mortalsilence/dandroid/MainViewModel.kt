@@ -58,20 +58,20 @@ class MainViewModel @Inject constructor(
 
     init {
         observeRepository()
-        fetchData()
-        loadPreferences()
+        viewModelScope.launch {
+            loadPreferences()
+            fetchData()
+        }
     }
 
-    private fun loadPreferences() {
-        viewModelScope.launch {
-            application.applicationContext.dataStore.data
-                .map { dataStorePrefs ->
-                    val dataStoreIpAddress = dataStorePrefs[IP_ADDRESS] ?: ""
-                    Log.d(TAG, "Read ip address $dataStoreIpAddress from dataStore.")
-                    preferences = preferences.copy(ipAddress = dataStoreIpAddress)
-                    DISCOVERY_CACHE_INSTANCE.host = dataStoreIpAddress
-                }.first()
-        }
+    private suspend fun loadPreferences() {
+        application.applicationContext.dataStore.data
+            .map { dataStorePrefs ->
+                val dataStoreIpAddress = dataStorePrefs[IP_ADDRESS] ?: ""
+                Log.d(TAG, "Read ip address '$dataStoreIpAddress' from dataStore.")
+                preferences = preferences.copy(ipAddress = dataStoreIpAddress)
+                DISCOVERY_CACHE_INSTANCE.host = dataStoreIpAddress
+            }.first()
     }
 
     private fun observeRepository() {
