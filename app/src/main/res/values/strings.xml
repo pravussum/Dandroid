@@ -16,4 +16,7 @@
     <string name="label_room_temperature">Room temperature</string>
     <string name="label_room_temperature_calculated">Room temperature (calculated)</string>
     <string name="label_outdoor_temperature">Outdoor temperature</string>
+    <string name="error_no_air_unit_found">No air unit found. Check network.</string>
+    <string name="error_cannot_reach_air_unit">Cannot reach air unit. Maybe something else is already connected?</string>
+    <string name="error_air_unit_request_failed">Air unit request failed for unexpected reason: %1$s</string>
 </resources>

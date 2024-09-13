@@ -1,27 +1,44 @@
 package net.mortalsilence.dandroid
 
+import android.app.Application
+import android.content.Context
 import android.util.Log
+import android.util.Patterns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.mortalsilence.dandroid.backgroundsync.AirUnitNotFound
+import net.mortalsilence.dandroid.backgroundsync.AirUnitRequestFailed
 import net.mortalsilence.dandroid.backgroundsync.AirUnitRequestTimeout
 import net.mortalsilence.dandroid.comm.AirUnitAccessor
 import net.mortalsilence.dandroid.comm.DanfossAirUnit
 import net.mortalsilence.dandroid.comm.Mode
+import net.mortalsilence.dandroid.comm.discovery.DiscoveryCache.DISCOVERY_CACHE_INSTANCE
 import net.mortalsilence.dandroid.data.AirUnitState
+import net.mortalsilence.dandroid.data.AppSettings
 import net.mortalsilence.dandroid.repository.AirUnitStateRepository
 import javax.inject.Inject
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "preferences")
+val IP_ADDRESS = stringPreferencesKey("ip_address")
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     val airUnitStateRepository: AirUnitStateRepository,
-    val airUnitAccessor: AirUnitAccessor
+    val airUnitAccessor: AirUnitAccessor,
+    val application: Application
 ) : ViewModel() {
 
     companion object {
@@ -37,9 +54,24 @@ class MainViewModel @Inject constructor(
     var isRefreshing by mutableStateOf(false)
         private set
 
+    var preferences by mutableStateOf(AppSettings("", false))
+
     init {
         observeRepository()
         fetchData()
+        loadPreferences()
+    }
+
+    private fun loadPreferences() {
+        viewModelScope.launch {
+            application.applicationContext.dataStore.data
+                .map { dataStorePrefs ->
+                    val dataStoreIpAddress = dataStorePrefs[IP_ADDRESS] ?: ""
+                    Log.d(TAG, "Read ip address $dataStoreIpAddress from dataStore.")
+                    preferences = preferences.copy(ipAddress = dataStoreIpAddress)
+                    DISCOVERY_CACHE_INSTANCE.host = dataStoreIpAddress
+                }.first()
+        }
     }
 
     private fun observeRepository() {
@@ -51,7 +83,6 @@ class MainViewModel @Inject constructor(
             }
         }
     }
-
 
     private var fetchJob: Job? = null
 
@@ -107,10 +138,13 @@ class MainViewModel @Inject constructor(
                 airUnitAccessor.fetchData()
             } catch (e: AirUnitNotFound) {
                 isRefreshing = false
-                sendMessage("No air found. Check network.")
+                sendMessage(application.applicationContext.getString(R.string.error_no_air_unit_found))
             } catch (e: AirUnitRequestTimeout) {
                 isRefreshing = false
-                sendMessage("Cannot reach air unit. Maybe something else is already connected?")
+                sendMessage(application.applicationContext.getString(R.string.error_cannot_reach_air_unit))
+            } catch (e: AirUnitRequestFailed) {
+                isRefreshing = false
+                sendMessage(application.applicationContext.getString(R.string.error_air_unit_request_failed, e.message))
             }
         }
     }
@@ -122,10 +156,33 @@ class MainViewModel @Inject constructor(
                 airUnitAccessor.performWithAirUnit(action)
             } catch (e: AirUnitNotFound) {
                 isRefreshing = false
-                sendMessage("No air found. Check network.")
+                sendMessage(application.applicationContext.getString(R.string.error_no_air_unit_found))
             } catch (e: AirUnitRequestTimeout) {
                 isRefreshing = false
-                sendMessage("Cannot reach air unit. Maybe something else is already connected?")
+                sendMessage(application.applicationContext.getString(R.string.error_cannot_reach_air_unit))
+            } catch (e: AirUnitRequestFailed) {
+                isRefreshing = false
+                sendMessage(application.applicationContext.getString(R.string.error_air_unit_request_failed, e.message))
+            }
+        }
+    }
+
+    fun setIpAddress(ipAddress: String) {
+        preferences = preferences.copy(ipAddress = ipAddress)
+        if(Patterns.IP_ADDRESS.matcher(ipAddress).matches() || ipAddress.isBlank()) {
+            preferences = preferences.copy(ipValid = true)
+            storeIpAddress(ipAddress)
+        } else {
+            preferences = preferences.copy(ipValid = false)
+        }
+    }
+
+    fun storeIpAddress(ipAddress: String) {
+        viewModelScope.launch {
+            application.applicationContext.dataStore.edit { dataStorePrefs ->
+                Log.d(TAG, "Writing ip address $ipAddress to dataStore.")
+                dataStorePrefs[IP_ADDRESS] = ipAddress
+                DISCOVERY_CACHE_INSTANCE.host = ipAddress
             }
         }
     }

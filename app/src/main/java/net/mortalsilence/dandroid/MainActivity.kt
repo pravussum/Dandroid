@@ -4,11 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,7 +19,17 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -48,13 +60,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dagger.hilt.android.AndroidEntryPoint
 import net.mortalsilence.dandroid.comm.Mode
+import net.mortalsilence.dandroid.data.AirUnitState
 import java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
 import kotlin.enums.EnumEntries
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    val bigLabelFontSize = TextUnit(4f, Em)
+    private val bigLabelFontSize = TextUnit(4f, Em)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,82 +77,42 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
     @Composable
     private fun Content(mainViewModel: MainViewModel = viewModel()) {
         val snackbarHostState = remember { SnackbarHostState() }
         val mainState by mainViewModel::airUnitState
         val snackbarMessage by mainViewModel::snackbarMessage
         val isRefreshing by mainViewModel::isRefreshing
+        var currentScreen by remember { mutableStateOf("airunitstate") }
+        val scrollState = rememberScrollState()
 
         Scaffold(
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            bottomBar = {
+                BottomAppBar(actions = {
+                    IconButton(onClick = { currentScreen = "airunitstate" }) {
+                        Icon(Icons.Filled.Home, contentDescription = "Air unit state")
+                    }
+                    IconButton(onClick = { currentScreen = "airunitsettings" }) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Air unit settings")
+                    }
+                    IconButton(onClick = { currentScreen = "preferences" }) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Preferences")
+                    }
+                })
+            }
         ) { paddingValues ->
 
-            val scrollState = rememberScrollState()
+            when (currentScreen) {
+                "airunitstate" -> HomeScreen(
+                    isRefreshing,
+                    mainViewModel,
+                    scrollState,
+                    mainState
+                )
 
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = { mainViewModel.fetchData() }) {
-                Column(
-                    modifier = Modifier
-                        .verticalScroll(scrollState)
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
-                ) {
-                    FlowRow(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        DataFieldTile(stringResource(R.string.label_unit_name), mainState.unitName)
-                        DataFieldTile(stringResource(R.string.label_unit_serial), mainState.unitSerialNo)
-                        DataFieldTile(stringResource(R.string.label_mode), mainState.mode.name)
-                        DataFieldTile(stringResource(R.string.label_boost), mainState.boost)
-                        DataFieldTile(stringResource(R.string.label_supply_fan_speed), mainState.supplyFanSpeed)
-                        DataFieldTile(stringResource(R.string.label_extract_fan_speed), mainState.extractFanSpeed)
-                        DataFieldTile(stringResource(R.string.label_manual_fan_step), mainState.manualFanStep)
-                        DataFieldTile(stringResource(R.string.label_filter_life), mainState.filterLife)
-                        DataFieldTile(stringResource(R.string.label_filter_period), mainState.filterPeriod)
-                        DataFieldTile(stringResource(R.string.label_supply_fan_step), mainState.supplyFanStep)
-                        DataFieldTile(stringResource(R.string.label_extract_fan_step), mainState.extractFanStep)
-                        DataFieldTile(stringResource(R.string.label_night_cooling), mainState.nightCooling)
-                        DataFieldTile(stringResource(R.string.label_bypass), mainState.bypass)
-                        DataFieldTile(stringResource(R.string.label_room_temperature), mainState.roomTemp)
-                        DataFieldTile(stringResource(R.string.label_room_temperature_calculated), mainState.roomTempCalculated)
-                        DataFieldTile(stringResource(R.string.label_outdoor_temperature), mainState.outdoorTemp)
-                        DataFieldTile("Supply temperature", mainState.supplyTemp)
-                        DataFieldTile("Extract temperature", mainState.extractTemp)
-                        DataFieldTile("Exhaust temperature", mainState.exhaustTemp)
-                        DataFieldTile("Battery life (remaining)", mainState.batteryLife)
-                        DataFieldTile(
-                            "Time", mainState.currentTime?.format(ISO_LOCAL_DATE_TIME)
-                        )
-                    }
-                    ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
-                        setter = { mainViewModel.setMode(it) })
-                    SwitchRow(
-                        "Boost",
-                        getter = { mainState.boost },
-                        setter = { mainViewModel.setBoost(it) })
-                    SwitchRow(
-                        "Night cooling",
-                        getter = { mainState.nightCooling },
-                        setter = { mainViewModel.setNightCooling(it) }
-                    )
-                    SwitchRow(
-                        "Bypass",
-                        getter = { mainState.bypass },
-                        setter = { mainViewModel.setBypass(it) }
-                    )
-                    SliderRow(
-                        "Manual Fan Step",
-                        { mainState.manualFanStep },
-                        { mainViewModel.setManualFanStep(it) },
-                        100,
-                        10
-                    )
-
-                }
+                "airunitsettings" -> AirUnitSettingsScreen(mainViewModel, mainState, paddingValues)
+                "preferences" -> PreferencesScreen(mainViewModel, paddingValues)
             }
         }
 
@@ -147,6 +120,144 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(key1 = message) {
                 snackbarHostState.showSnackbar(message)
                 mainViewModel.markMessageShown()
+            }
+        }
+    }
+
+    @Composable
+    private fun PreferencesScreen(mainViewModel: MainViewModel, paddingValues: PaddingValues) {
+
+        val preferences by mainViewModel::preferences
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 30.dp)
+                .padding(16.dp),
+        ) {
+            Text(
+                "IP address (e.g. 192.168.0.7 )",
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+            Row(verticalAlignment = Alignment.CenterVertically ) {
+                OutlinedTextField(
+                    value = preferences.ipAddress,
+                    onValueChange = { mainViewModel.setIpAddress(it) },
+                )
+                if (preferences.ipValid) {
+                    Icon(Icons.Filled.Check, contentDescription = "valid")
+                } else {
+                    Icon(Icons.Filled.Close, contentDescription = "invalid")
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun AirUnitSettingsScreen(
+        mainViewModel: MainViewModel,
+        mainState: AirUnitState,
+        paddingValues: PaddingValues
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 30.dp)
+                .padding(16.dp),
+        ) {
+            ChoiceRow("Mode", Mode.entries, getter = { mainState.mode },
+                setter = { mainViewModel.setMode(it) })
+            SwitchRow(
+                "Boost",
+                getter = { mainState.boost },
+                setter = { mainViewModel.setBoost(it) })
+            SwitchRow(
+                "Night cooling",
+                getter = { mainState.nightCooling },
+                setter = { mainViewModel.setNightCooling(it) }
+            )
+            SwitchRow(
+                "Bypass",
+                getter = { mainState.bypass },
+                setter = { mainViewModel.setBypass(it) }
+            )
+            SliderRow(
+                "Manual Fan Step",
+                { mainState.manualFanStep },
+                { mainViewModel.setManualFanStep(it) },
+                100,
+                10
+            )
+        }
+    }
+
+    @Composable
+    @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+    private fun HomeScreen(
+        isRefreshing: Boolean,
+        mainViewModel: MainViewModel,
+        scrollState: ScrollState,
+        mainState: AirUnitState
+    ) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { mainViewModel.fetchData() }) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(scrollState)
+                    .fillMaxSize()
+                    .padding(top = 30.dp)
+                    .padding(16.dp),
+            ) {
+                FlowRow(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    DataFieldTile(stringResource(R.string.label_unit_name), mainState.unitName)
+                    DataFieldTile(
+                        stringResource(R.string.label_unit_serial),
+                        mainState.unitSerialNo
+                    )
+                    DataFieldTile(
+                        stringResource(R.string.label_supply_fan_speed),
+                        mainState.supplyFanSpeed
+                    )
+                    DataFieldTile(
+                        stringResource(R.string.label_extract_fan_speed),
+                        mainState.extractFanSpeed
+                    )
+                    DataFieldTile(stringResource(R.string.label_filter_life), mainState.filterLife)
+                    DataFieldTile(
+                        stringResource(R.string.label_filter_period),
+                        mainState.filterPeriod
+                    )
+                    DataFieldTile(
+                        stringResource(R.string.label_supply_fan_step),
+                        mainState.supplyFanStep
+                    )
+                    DataFieldTile(
+                        stringResource(R.string.label_extract_fan_step),
+                        mainState.extractFanStep
+                    )
+                    DataFieldTile(
+                        stringResource(R.string.label_room_temperature),
+                        mainState.roomTemp
+                    )
+                    DataFieldTile(
+                        stringResource(R.string.label_room_temperature_calculated),
+                        mainState.roomTempCalculated
+                    )
+                    DataFieldTile(
+                        stringResource(R.string.label_outdoor_temperature),
+                        mainState.outdoorTemp
+                    )
+                    DataFieldTile("Supply temperature", mainState.supplyTemp)
+                    DataFieldTile("Extract temperature", mainState.extractTemp)
+                    DataFieldTile("Exhaust temperature", mainState.exhaustTemp)
+                    DataFieldTile("Battery life (remaining)", mainState.batteryLife)
+                    DataFieldTile(
+                        "Time", mainState.currentTime?.format(ISO_LOCAL_DATE_TIME)
+                    )
+                }
             }
         }
     }

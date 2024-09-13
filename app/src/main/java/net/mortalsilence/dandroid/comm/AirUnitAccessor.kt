@@ -3,7 +3,6 @@ package net.mortalsilence.dandroid.comm
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
-import net.mortalsilence.dandroid.BuildConfig
 import net.mortalsilence.dandroid.backgroundsync.AirUnitNotFound
 import net.mortalsilence.dandroid.backgroundsync.AirUnitRequestFailed
 import net.mortalsilence.dandroid.backgroundsync.AirUnitRequestTimeout
@@ -56,29 +55,19 @@ class AirUnitAccessor @Inject constructor(
     }
 
     suspend fun performWithAirUnit(action: (airUnit: DanfossAirUnit) -> Any): Any {
-       try {
-           return applicationScope.async {
-               performWithAirUnitInternal(action)
-           }.await()
-       } catch(e: AirUnitNotFound) {
-           throw e
-       } catch (e: AirUnitRequestTimeout){
-           throw e
-       }
+       return applicationScope.async {
+           performWithAirUnitInternal(action)
+       }.await()
     }
 
     private fun performWithAirUnitInternal(action: (airUnit: DanfossAirUnit) -> Any): Any {
-
-            if (BuildConfig.AIR_UNIT_IP.isNotBlank()) {
-                DISCOVERY_CACHE_INSTANCE.host = BuildConfig.AIR_UNIT_IP
-            } else {
-                DanfossAirUnitDiscoveryService()
-                    .scanForDevice()
-            }
-            if (DISCOVERY_CACHE_INSTANCE.host == null) {
-                Log.i(TAG, "No AirUnit found...")
-                throw AirUnitNotFound()
-            }
+        if(DISCOVERY_CACHE_INSTANCE.host == null || DISCOVERY_CACHE_INSTANCE.host.isBlank()) {
+            DanfossAirUnitDiscoveryService().scanForDevice()
+        }
+        if (DISCOVERY_CACHE_INSTANCE.host == null || DISCOVERY_CACHE_INSTANCE.host.isBlank()) {
+            Log.i(TAG, "No AirUnit found...")
+            throw AirUnitNotFound()
+        }
         try {
             val commController =
                 DanfossAirUnitCommunicationController(getByName(DISCOVERY_CACHE_INSTANCE.host))
