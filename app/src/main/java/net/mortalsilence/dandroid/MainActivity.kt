@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -61,6 +62,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dagger.hilt.android.AndroidEntryPoint
 import net.mortalsilence.dandroid.comm.Mode
 import net.mortalsilence.dandroid.data.AirUnitState
+import net.mortalsilence.dandroid.ui.Screens.airunitsettings
+import net.mortalsilence.dandroid.ui.Screens.airunitstate
+import net.mortalsilence.dandroid.ui.Screens.preferences
 import java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
 import kotlin.enums.EnumEntries
 
@@ -83,36 +87,31 @@ class MainActivity : ComponentActivity() {
         val mainState by mainViewModel::airUnitState
         val snackbarMessage by mainViewModel::snackbarMessage
         val isRefreshing by mainViewModel::isRefreshing
-        var currentScreen by remember { mutableStateOf("airunitstate") }
+        var currentScreen by remember { mutableStateOf(airunitstate) }
         val scrollState = rememberScrollState()
 
         Scaffold(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             bottomBar = {
                 BottomAppBar(actions = {
-                    IconButton(onClick = { currentScreen = "airunitstate" }) {
+                    IconButton(onClick = { currentScreen = airunitstate }) {
                         Icon(Icons.Filled.Home, contentDescription = "Air unit state")
                     }
-                    IconButton(onClick = { currentScreen = "airunitsettings" }) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = { currentScreen = airunitsettings }) {
                         Icon(Icons.Filled.Edit, contentDescription = "Air unit settings")
                     }
-                    IconButton(onClick = { currentScreen = "preferences" }) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = { currentScreen = preferences }) {
                         Icon(Icons.Filled.Settings, contentDescription = "Preferences")
                     }
                 })
             }
         ) { paddingValues ->
-
             when (currentScreen) {
-                "airunitstate" -> HomeScreen(
-                    isRefreshing,
-                    mainViewModel,
-                    scrollState,
-                    mainState
-                )
-
-                "airunitsettings" -> AirUnitSettingsScreen(mainViewModel, mainState, paddingValues)
-                "preferences" -> PreferencesScreen(mainViewModel, paddingValues)
+                airunitstate -> HomeScreen(isRefreshing, mainViewModel, scrollState, mainState)
+                airunitsettings -> AirUnitSettingsScreen(mainViewModel, mainState, paddingValues)
+                preferences -> PreferencesScreen(mainViewModel, paddingValues)
             }
         }
 
